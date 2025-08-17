@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quantum ML - FTSE 100 Predictor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #00d4ff;
+            --primary-dark: #0077ff;
+            --background: #0a192f;
+            --card-bg: #112240;
+            --text-light: #ccd6f6;
+            --text-lighter: #e6f1ff;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+        /* Navigation */
+        .navbar {
+            background-color: rgba(10, 25, 47, 0.9);
+            backdrop-filter: blur(10px);
+            position: fixed;
+            width: 100%;
+            z-index: 100;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(100, 255, 255, 0.1);
+        }
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .nav-logo i {
+            font-size: 1.8rem;
+        }
+        .nav-menu {
+            display: flex;
+            gap: 2rem;
+        }
+        .nav-link {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .nav-link:hover {
+            color: var(--primary);
+        }
+        .nav-link.active {
+            color: var(--primary);
+        }
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--primary);
+        }
+        /* Main Content */
+        .main-content {
+            padding-top: 80px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-bottom: 4rem;
+        }
+        .container {
+            padding: 0 2rem;
+        }
+        /* Hero Section */
+        .hero {
+            display: flex;
+            align-items: center;
+            min-height: 80vh;
+            gap: 4rem;
+            padding: 2rem;
+        }
+        .hero-content {
+            flex: 1;
+        }
+        .hero-title {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-lighter);
+            line-height: 1.2;
+        }
+        .hero-title span {
+            color: var(--primary);
+        }
+        .hero-description {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            max-width: 600px;
+            opacity: 0.9;
+        }
+        .cta-button {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 212, 255, 0.3);
+        }
+        .cta-button:active {
+            transform: translateY(0);
+        }
+        .hero-visual {
+            flex: 1;
+            position: relative;
+            height: 400px;
+        }
+        .quantum-animation {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .qubit {
+            width: 20px;
+            height: 20px;
+            background-color: var(--primary);
+            border-radius: 50%;
+            position: absolute;
+            opacity: 0.8;
+            filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.5));
+        }
+        .quantum-animation.active .qubit {
+            animation: qubitFloat 2s ease-in-out infinite;
+        }
+        .quantum-animation.active .qubit:nth-child(1) {
+            animation-delay: 0s;
+            transform: translate(0, 0);
+        }
+        .quantum-animation.active .qubit:nth-child(2) {
+            animation-delay: 0.2s;
+            transform: translate(30px, -20px);
+        }
+        .quantum-animation.active .qubit:nth-child(3) {
+            animation-delay: 0.4s;
+            transform: translate(-30px, 20px);
+        }
+        @keyframes qubitFloat {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+        /* Prediction Section */
+        .section-title {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            color: var(--text-lighter);
+            position: relative;
+            display: inline-block;
+        }
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background-color: var(--primary);
+        }
+        .prediction-section {
+            padding: 4rem 0;
+        }
+        .prediction-card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .prediction-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .prediction-icon {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+        .prediction-info h3 {
+            font-size: 1.3rem;
+            color: var(--text-lighter);
+        }
+        .prediction-time {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        .prediction-result {
+            margin-top: 1.5rem;
+            min-height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .prediction-placeholder {
+            text-align: center;
+            opacity: 0.6;
+        }
+        .prediction-placeholder i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+        .prediction-up {
+            color: #00ffaa;
+        }
+        .prediction-down {
+            color: #ff6b6b;
+        }
+        /* Model Section */
+        .models-section {
+            padding: 4rem 0;
+        }
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .model-card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(100, 255, 255, 0.1);
+        }
+        .model-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+        .model-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .model-header i {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+        .model-header h3 {
+            font-size: 1.2rem;
+            color: var(--text-lighter);
+        }
+        .model-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        .metric {
+            padding: 0.8rem;
+            background-color: rgba(0, 212, 255, 0.05);
+            border-radius: 6px;
+            text-align: center;
+        }
+        .metric-label {
+            display: block;
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-bottom: 0.3rem;
+        }
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        /* Data Section */
+        .data-section {
+            padding: 4rem 0;
+        }
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        .data-card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .data-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--text-lighter);
+        }
+        .price-display {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .currency {
+            font-size: 1rem;
+            margin-top: 0.4rem;
+            margin-right: 0.3rem;
+            color: var(--primary);
+        }
+        .price-change {
+            font-size: 1rem;
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .price-change.positive {
+            color: #00ffaa;
+        }
+        .price-change.negative {
+            color: #ff6b6b;
+        }
+        .data-stat {
+            margin-top: 1rem;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+            line-height: 1;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        .chart-container {
+            height: 400px;
+            margin-top: 2rem;
+        }
+        /* About Section */
+        .about-section {
+            padding: 4rem 0;
+            position: relative;
+            z-index: 1;
+        }
+        .about-floating {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 3rem;
+            margin-top: 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .about-floating::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(0,212,255,0.2) 0%, rgba(0,212,255,0) 70%);
+            z-index: -1;
+        }
+        .about-content {
+            display: flex;
+            gap: 3rem;
+            align-items: center;
+        }
+        .about-text {
+            flex: 1;
+        }
+        .about-text h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-lighter);
+        }
+        .tech-stack {
+            margin-top: 2rem;
+        }
+        .tech-stack h4 {
+            margin-bottom: 1rem;
+            color: var(--text-lighter);
+        }
+        .tech-stack ul {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        .tech-stack li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .tech-stack i {
+            color: var(--primary);
+        }
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 25, 47, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .loading-content {
+            text-align: center;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(0, 212, 255, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero {
+                flex-direction: column;
+                min-height: auto;
+            }
+            .hero-title {
+                font-size: 2.2rem;
+            }
+            .about-content {
+                flex-direction: column;
+            }
+            .tech-stack ul {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 480px) {
+            .nav-menu {
+                gap: 1rem;
+            }
+            .hero {
+                padding: 2rem 1rem;
+            }
+            .models-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-atom"></i>
+                <span>Quantum ML</span>
+            </div>
+            <div class="nav-menu">
+                <a href="#dashboard" class="nav-link active">Dashboard</a>
+                <a href="#models" class="nav-link">Models</a>
+                <a href="#data" class="nav-link">Data</a>
+                <a href="#about" class="nav-link">About</a>
+            </div>
+        </div>
+    </nav>
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Hero Section -->
+        <section class="hero" id="dashboard">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    <span>Quantum Machine Learning</span>
+                    <br>FTSE 100 Predictor
+                </h1>
+                <p class="hero-description">
+                    Harness the power of quantum computing and machine learning
+                    to predict tomorrow's FTSE 100 movements with unprecedented accuracy.
+                </p>
+                <p style="margin-top:1rem; font-size:1.1rem; color:#fff; background:#00336622; padding:0.7em 1em; border-radius:8px;">
+                    <strong>How to use:</strong> Click "Get Live Prediction" to see if the FTSE 100 is likely to go up or down tomorrow.
+                </p>
+                <button class="cta-button" onclick="runPrediction()">
+                    <i class="fas fa-play"></i>
+                    Get Live Prediction
+                </button>
+            </div>
+            <div class="hero-visual">
+                <div class="quantum-animation">
+                    <div class="qubit"></div>
+                    <div class="qubit"></div>
+                    <div class="qubit"></div>
+                </div>
+            </div>
+        </section>
+        <!-- Prediction Section -->
+        <section class="prediction-section" id="live-prediction">
+            <div class="container">
+                <h2 class="section-title">Live Prediction</h2>
+                <div class="prediction-card">
+                    <div class="prediction-header">
+                        <div class="prediction-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="prediction-info">
+                            <h3>FTSE 100 Tomorrow</h3>
+                            <p class="prediction-time">Last updated: <span id="lastUpdate">-</span></p>
+                        </div>
+                    </div>
+                    <div class="prediction-result" id="predictionResult">
+                        <div class="prediction-placeholder">
+                            <i class="fas fa-robot"></i>
+                            <p>Click "Get Live Prediction" to see the forecast</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Models Section -->
+        <section class="models-section" id="models">
+            <div class="container">
+                <h2 class="section-title">Model Performance</h2>
+                <div class="models-grid">
+                    <div class="model-card">
+                        <div class="model-header">
+                            <i class="fas fa-brain"></i>
+                            <h3>Random Forest</h3>
+                        </div>
+                        <div class="model-metrics">
+                            <div class="metric">
+                                <span class="metric-label">Accuracy
+                                    <span title="How often the model is correct. Higher is better." style="cursor:help; color:#00d4ff;">ⓘ</span>
+                                </span>
+                                <span class="metric-value" id="rf-accuracy">-</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Precision
+                                    <span title="How accurate positive predictions are. Higher is better." style="cursor:help; color:#00d4ff;">ⓘ</span>
+                                </span>
+                                <span class="metric-value" id="rf-precision">-</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Recall
+                                    <span title="How many actual positives were identified. Higher is better." style="cursor:help; color:#00d4ff;">ⓘ</span>
+                                </span>
+                                <span class="metric-value" id="rf-recall">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="model-card">
+                        <div class="model-header">
+                            <i class="fas fa-atom"></i>
+                            <h3>Hybrid Quantum</h3>
+                        </div>
+                        <div class="model-metrics">
+                            <div class="metric">
+                                <span class="metric-label">Accuracy</span>
+                                <span class="metric-value" id="hybrid-accuracy">-</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Precision</span>
+                                <span class="metric-value" id="hybrid-precision">-</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Recall</span>
+                                <span class="metric-value" id="hybrid-recall">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="model-card">
+                        <div class="model-header">
+                            <i class="fas fa-cogs"></i>
+                            <h3>SVM</h3>
+                        </div>
+                        <div class="model-metrics">
+                            <div class="metric">
+                                <span class="metric-label">Accuracy</span>
+                                <span class="metric-value" id="svm-accuracy">-</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Precision</span>
+                                <span class="metric-value" id="svm-precision">-</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Recall</span>
+                                <span class="metric-value" id="svm-recall">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Data Section -->
+        <section class="data-section" id="data">
+            <div class="container">
+                <h2 class="section-title">Market Data</h2>
+                <div class="data-grid">
+                    <div class="data-card">
+                        <h3>FTSE 100 Price</h3>
+                        <div class="price-display">
+                            <span class="currency">£</span>
+                            <span class="price" id="currentPrice">-</span>
+                        </div>
+                        <div class="price-change" id="priceChange">
+                            <span class="change-amount">-</span>
+                            <span class="change-percent">-</span>
+                        </div>
+                    </div>
+                    <div class="data-card">
+                        <h3>Data Points</h3>
+                        <div class="data-stat">
+                            <span class="stat-number" id="dataPoints">-</span>
+                            <span class="stat-label">Trading Days</span>
+                        </div>
+                    </div>
+                    <div class="data-card">
+                        <h3>Features</h3>
+                        <div class="data-stat">
+                            <span class="stat-number" id="featureCount">-</span>
+                            <span class="stat-label">Technical Indicators</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+        </section>
+        <!-- About Section -->
+        <section class="about-section about-floating" id="about">
+            <div class="container">
+                <h2 class="section-title">About This Project</h2>
+                <div class="about-content">
+                    <div class="about-text">
+                        <h3>Quantum Machine Learning for Financial Prediction</h3>
+                        <p>This system uses advanced quantum computing algorithms combined with classical machine learning to predict FTSE 100 market movements. It analyzes 60 different technical indicators and uses multiple AI models to generate predictions.</p>
+                        <div class="tech-stack">
+                            <h4>Technology Stack:</h4>
+                            <ul>
+                                <li><i class="fas fa-atom"></i> Qiskit (Quantum Computing)</li>
+                                <li><i class="fas fa-brain"></i> Scikit-learn (Machine Learning)</li>
+                                <li><i class="fas fa-chart-bar"></i> Technical Analysis</li>
+                                <li><i class="fas fa-database"></i> Yahoo Finance API</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>Running Quantum ML Models...</p>
+        </div>
+    </div>
+<script>
+    // Quantum ML Dashboard Frontend
+    // Configuration ==========
+    const useWebSocket = true; // Set to false for HTTP-only mode
+    const backendUrl = 'http://localhost:3000';
+    const wsUrl = 'ws://localhost:8000';
+    // DOM Elements ===========
+    const elements = {
+      priceDisplay: document.getElementById('currentPrice'),
+      priceChange: document.getElementById('priceChange'),
+      dataPoints: document.getElementById('dataPoints'),
+      featureCount: document.getElementById('featureCount'),
+      predictionResult: document.getElementById('predictionResult'),
+      lastUpdate: document.getElementById('lastUpdate'),
+      loadingOverlay: document.getElementById('loadingOverlay'),
+      rfAccuracy: document.getElementById('rf-accuracy'),
+      rfPrecision: document.getElementById('rf-precision'),
+      rfRecall: document.getElementById('rf-recall'),
+      hybridAccuracy: document.getElementById('hybrid-accuracy'),
+      hybridPrecision: document.getElementById('hybrid-precision'),
+      hybridRecall: document.getElementById('hybrid-recall'),
+      svmAccuracy: document.getElementById('svm-accuracy'),
+      svmPrecision: document.getElementById('svm-precision'),
+      svmRecall: document.getElementById('svm-recall')
+    };
+    // Chart Initialization ========
+    let priceChart = new Chart(
+      document.getElementById('priceChart').getContext('2d'),
+      {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'FTSE 100 Price',
+            data: [],
+            borderColor: '#00d4ff',
+            backgroundColor: 'rgba(0, 212, 255, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#00d4ff',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.1)' },
+              ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+            },
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.1)' },
+              ticks: {
+                color: 'rgba(255, 255, 255, 0.7)',
+                callback: (value) => '£' + value.toLocaleString()
+              }
+            }
+          },
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          }
+        }
+      }
+    );
+    // Connection Management =========
+    let socket = null;
+    function initWebSocket() {
+      if (!useWebSocket) return;
+      socket = new WebSocket(wsUrl);
+      socket.addEventListener('open', () => {
+        console.log('WebSocket connected');
+      });
+      socket.addEventListener('message', (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          handleServerMessage(message);
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      });
+      socket.addEventListener('close', () => {
+        console.log('WebSocket disconnected - falling back to HTTP');
+        setupPolling();
+      });
+      socket.addEventListener('error', (error) => {
+        console.error('WebSocket error:', error);
+        setupPolling();
+      });
+    }
+    function setupPolling() {
+      // Fallback to HTTP polling if WebSocket fails
+      fetchDashboardData();
+      setInterval(fetchDashboardData, 15000); // Poll every 15 seconds
+    }
+    // Data Handling =========
+    async function fetchDashboardData() {
+      try {
+        const response = await fetch(`${backendUrl}/api/dashboard`);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        updateDashboard(data);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+        showError('Failed to load dashboard data');
+      }
+    }
+    function handleServerMessage(message) {
+      switch (message.type) {
+        case 'initialData':
+        case 'dataLoaded':
+          updateDashboard(message.data);
+          break;
+        case 'priceUpdate':
+          updatePriceDisplay(message.data);
+          break;
+        case 'modelMetricsUpdate':
+          updateModelMetrics(message.data);
+          break;
+        case 'chartUpdate':
+          updateChartData(message.data);
+          break;
+        case 'predictionResult':
+          displayPrediction(message.data);
+          break;
+      }
+    }
+    // UI Updates ============
+    function updateDashboard(data) {
+      updatePriceDisplay({
+        currentPrice: data.currentPrice,
+        priceChange: data.priceChange,
+        priceChangePercent: data.priceChangePercent,
+        dataPoints: data.dataPoints,
+        featureCount: data.featureCount
+      });
+      updateModelMetrics({
+        randomForest: data.models.randomForest,
+        hybrid: data.models.hybrid,
+        svm: data.models.svm
+      });
+      // Initialize chart with historical data
+      if (data.historicalPrices) {
+        updateChartData(data.historicalPrices);
+      }
+    }
+    function updatePriceDisplay(data) {
+      elements.priceDisplay.textContent = data.currentPrice ? data.currentPrice.toLocaleString() : '-';
+      elements.dataPoints.textContent = data.dataPoints ? data.dataPoints.toLocaleString() : '-';
+      elements.featureCount.textContent = data.featureCount || '-';
+      const changeAmount = elements.priceChange.querySelector('.change-amount');
+      const changePercent = elements.priceChange.querySelector('.change-percent');
+      
+      if (changeAmount && changePercent && typeof data.priceChange === 'number' && typeof data.priceChangePercent === 'number') {
+        changeAmount.textContent = (data.priceChange > 0 ? '+' : '') + data.priceChange.toFixed(2);
+        changePercent.textContent = (data.priceChange > 0 ? '+' : '') + data.priceChangePercent.toFixed(2) + '%';
+        // Update color
+        if (data.priceChange > 0) {
+          elements.priceChange.className = 'price-change positive';
+        } else if (data.priceChange < 0) {
+          elements.priceChange.className = 'price-change negative';
+        } else {
+          elements.priceChange.className = 'price-change neutral';
+        }
+      } else {
+        changeAmount.textContent = '-';
+        changePercent.textContent = '-';
+        elements.priceChange.className = 'price-change neutral';
+      }
+    }
+    function updateModelMetrics(metrics) {
+      updateSingleModelMetrics('rf', metrics.randomForest);
+      updateSingleModelMetrics('hybrid', metrics.hybrid);
+      updateSingleModelMetrics('svm', metrics.svm);
+    }
+    function updateSingleModelMetrics(prefix, metrics) {
+      if (!metrics) return;
+      document.getElementById(`${prefix}-accuracy`).textContent = typeof metrics.accuracy === 'number' ? (metrics.accuracy * 100).toFixed(1) + '%' : '-';
+      document.getElementById(`${prefix}-precision`).textContent = typeof metrics.precision === 'number' ? (metrics.precision * 100).toFixed(1) + '%' : '-';
+      document.getElementById(`${prefix}-recall`).textContent = typeof metrics.recall === 'number' ? (metrics.recall * 100).toFixed(1) + '%' : '-';
+    }
+    function updateChartData(chartData) {
+      if (!chartData) return;
+      const labels = chartData.map(item => {
+        const date = new Date(item.timestamp);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      });
+      const prices = chartData.map(item => item.price);
+      priceChart.data.labels = labels;
+      priceChart.data.datasets[0].data = prices;
+      priceChart.update();
+    }
+    function displayPrediction(prediction) {
+      elements.lastUpdate.textContent = prediction.timestamp || new Date().toLocaleString();
+      const isUp = prediction.direction === 'UP';
+      const directionClass = isUp ? 'prediction-up' : 'prediction-down';
+      const directionIcon = isUp 
+        ? '<i class="fas fa-arrow-up" style="margin-right: 8px;"></i>' 
+        : '<i class="fas fa-arrow-down" style="margin-right: 8px;"></i>';
+
+      elements.predictionResult.innerHTML = `
+        <div class="prediction-result-content ${directionClass}">
+          <div class="prediction-main">
+            ${directionIcon}
+            <span>${isUp ? 'FTSE 100 is expected to go UP' : 'FTSE 100 is expected to go DOWN'}</span>
+          </div>
+          <div class="prediction-confidence">
+            Confidence: <strong>${(prediction.confidence * 100).toFixed(1)}%</strong>
+          </div>
+          <div class="prediction-update-time">
+            Updated at: ${elements.lastUpdate.textContent}
+          </div>
+        </div>
+      `;
+    }
+    function showError(msg) {
+      if (elements.predictionResult) {
+        elements.predictionResult.innerHTML = `<p style="color:red;">${msg}</p>`;
+      }
+    }
+    // Button handler ========== 
+    function runPrediction() {
+      if (useWebSocket && socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ action: 'getPrediction' }));
+        if (elements.loadingOverlay) elements.loadingOverlay.style.display = 'flex';
+      } else {
+        if (elements.loadingOverlay) elements.loadingOverlay.style.display = 'flex';
+        fetch(`${backendUrl}/api/predict`)
+          .then(res => res.json())
+          .then(data => {
+            displayPrediction(data);
+            if (elements.loadingOverlay) elements.loadingOverlay.style.display = 'none';
+          })
+          .catch(err => {
+            showError('Error fetching prediction.');
+            if (elements.loadingOverlay) elements.loadingOverlay.style.display = 'none';
+          });
+      }
+    }
+    // Init on load
+    window.addEventListener('DOMContentLoaded', () => {
+      if (useWebSocket) {
+        initWebSocket();
+      } else {
+        fetchDashboardData();
+        setupPolling();
+      }
+    });
+</script>
+<!-- Code injected by live-server -->
+<script>
+	// <![CDATA[  <-- For SVG support
+	if ('WebSocket' in window) {
+		(function () {
+			function refreshCSS() {
+				var sheets = [].slice.call(document.getElementsByTagName("link"));
+				var head = document.getElementsByTagName("head")[0];
+				for (var i = 0; i < sheets.length; ++i) {
+					var elem = sheets[i];
+					var parent = elem.parentElement || head;
+					parent.removeChild(elem);
+					var rel = elem.rel;
+					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+					}
+					parent.appendChild(elem);
+				}
+			}
+			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+			var address = protocol + window.location.host + window.location.pathname + '/ws';
+			var socket = new WebSocket(address);
+			socket.onmessage = function (msg) {
+				if (msg.data == 'reload') window.location.reload();
+				else if (msg.data == 'refreshcss') refreshCSS();
+			};
+			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+				console.log('Live reload enabled.');
+				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+			}
+		})();
+	}
+	else {
+		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+	}
+	// ]]>
+</script>
+</body>
+</html>
