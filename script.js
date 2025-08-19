@@ -4,6 +4,7 @@ const WebSocket = require('ws');
 const express = require('express');
 const cors = require('cors');
 
+
 // ======================
 // Quantum ML Dashboard Backend
 // ======================
@@ -15,6 +16,7 @@ class QuantumMLDashboard extends EventEmitter {
     this.isLoading = false;
     this.lastPrediction = null;
   }
+
 
   async loadDashboardData() {
     this.isLoading = true;
@@ -34,6 +36,7 @@ class QuantumMLDashboard extends EventEmitter {
         }
       };
 
+
       this.currentData = mockData;
       this.emit('dataLoaded', mockData);
       return mockData;
@@ -45,6 +48,7 @@ class QuantumMLDashboard extends EventEmitter {
       this.isLoading = false;
     }
   }
+
 
   generateHistoricalData() {
     const data = [];
@@ -60,6 +64,7 @@ class QuantumMLDashboard extends EventEmitter {
     return data;
   }
 
+
   async simulatePrediction() {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -74,10 +79,12 @@ class QuantumMLDashboard extends EventEmitter {
           timestamp: new Date().toISOString()
         };
 
+
         // Normalize probabilities
         const total = prediction.probabilities.up + prediction.probabilities.down;
         prediction.probabilities.up = (prediction.probabilities.up / total * 100).toFixed(1);
         prediction.probabilities.down = (prediction.probabilities.down / total * 100).toFixed(1);
+
 
         this.lastPrediction = prediction;
         this.emit('predictionComplete', prediction);
@@ -85,6 +92,7 @@ class QuantumMLDashboard extends EventEmitter {
       }, 2000); // Simulate 2s processing time
     });
   }
+
 
   async runPrediction() {
     if (this.isLoading) return;
@@ -101,6 +109,7 @@ class QuantumMLDashboard extends EventEmitter {
     }
   }
 
+
   simulatePriceUpdate() {
     if (!this.currentData) return;
     
@@ -114,15 +123,18 @@ class QuantumMLDashboard extends EventEmitter {
       priceChangePercent: (change / this.currentData.currentPrice * 100).toFixed(2)
     };
 
+
     // Add to chart data
     this.priceChartData.push({
       timestamp: new Date().toISOString(),
       price: newPrice
     });
 
+
     if (this.priceChartData.length > 30) {
       this.priceChartData.shift();
     }
+
 
     this.emit('priceUpdate', {
       currentPrice: newPrice,
@@ -130,9 +142,11 @@ class QuantumMLDashboard extends EventEmitter {
       priceChangePercent: this.currentData.priceChangePercent
     });
 
+
     this.emit('chartUpdate', this.priceChartData.slice());
   }
 }
+
 
 // ======================
 // Server Initialization
@@ -141,15 +155,19 @@ const app = express();
 const PORT = 3000;
 const WS_PORT = 8080;
 
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 
+
 // Create dashboard instance
 const dashboard = new QuantumMLDashboard();
 
+
 // Start WebSocket server
 const wss = new WebSocket.Server({ port: WS_PORT });
+
 
 wss.on('connection', (ws) => {
   console.log('New WebSocket connection');
@@ -161,6 +179,7 @@ wss.on('connection', (ws) => {
       data: dashboard.currentData
     }));
   }
+
 
   // Handle messages from client
   ws.on('message', (message) => {
@@ -175,6 +194,7 @@ wss.on('connection', (ws) => {
   });
 });
 
+
 // Forward events to WebSocket clients
 dashboard.on('dataLoaded', (data) => {
   wss.clients.forEach((client) => {
@@ -187,6 +207,7 @@ dashboard.on('dataLoaded', (data) => {
   });
 });
 
+
 dashboard.on('predictionComplete', (prediction) => {
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
@@ -197,6 +218,7 @@ dashboard.on('predictionComplete', (prediction) => {
     }
   });
 });
+
 
 dashboard.on('priceUpdate', (priceData) => {
   wss.clients.forEach((client) => {
@@ -209,6 +231,7 @@ dashboard.on('priceUpdate', (priceData) => {
   });
 });
 
+
 dashboard.on('chartUpdate', (chartData) => {
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
@@ -220,6 +243,7 @@ dashboard.on('chartUpdate', (chartData) => {
   });
 });
 
+
 // REST API Endpoints
 app.get('/api/dashboard', async (req, res) => {
   try {
@@ -230,6 +254,7 @@ app.get('/api/dashboard', async (req, res) => {
   }
 });
 
+
 app.post('/api/predict', async (req, res) => {
   try {
     await dashboard.runPrediction();
@@ -239,6 +264,7 @@ app.post('/api/predict', async (req, res) => {
   }
 });
 
+
 app.get('/api/last-prediction', (req, res) => {
   if (dashboard.lastPrediction) {
     res.json(dashboard.lastPrediction);
@@ -247,16 +273,46 @@ app.get('/api/last-prediction', (req, res) => {
   }
 });
 
+
 // Simulate real-time price updates
 setInterval(() => {
   dashboard.simulatePriceUpdate();
 }, 30000);
 
+
 // Initialize dashboard
 dashboard.loadDashboardData();
+
 
 // Start HTTP server
 app.listen(PORT, () => {
   console.log(`HTTP Server running on http://localhost:${PORT}`);
   console.log(`WebSocket Server running on ws://localhost:${WS_PORT}`);
 });
+
+
+// ======================
+// Helper: Client-side displayPrediction function
+// ======================
+function displayPrediction(prediction) {
+    const resultContainer = document.getElementById('predictionResult');
+    const lastUpdateElement = document.getElementById('lastUpdate');
+    const directionIcon = prediction.direction === 'UP'
+        ? '<i class="fas fa-arrow-up"></i>'
+        : '<i class="fas fa-arrow-down"></i>';
+    const predictionClass = prediction.direction === 'UP' ? 'prediction-up' : 'prediction-down';
+    resultContainer.innerHTML = `
+        <div class="${predictionClass}">
+            <div class="prediction-direction">
+                ${directionIcon} <strong>The market is likely to go ${prediction.direction} tomorrow.</strong>
+            </div>
+            <div class="prediction-confidence">
+                Confidence: ${prediction.confidence}%
+            </div>
+            <div style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.7;">
+                Model: ${prediction.model.replace('_', ' ').toUpperCase()}
+            </div>
+        </div>
+    `;
+    lastUpdateElement.textContent = prediction.timestamp;
+}
